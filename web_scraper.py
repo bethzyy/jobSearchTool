@@ -216,17 +216,56 @@ class JobScraper:
             if 'zhaopin.com' in self.driver.current_url:
                 print("检测到智联招聘,尝试URL翻页...")
                 current_url = self.driver.current_url
-                # 将/p1改为/p2,或添加/p2
-                if '/p1' in current_url or '/p1?' in current_url:
-                    next_url = current_url.replace('/p1', '/p2')
+                print(f"当前URL: {current_url}")
+
+                # 提取当前页码并递增
+                import re
+                # 匹配 /p1, /p2, /p3 等
+                page_match = re.search(r'/p(\d+)', current_url)
+
+                if page_match:
+                    current_page = int(page_match.group(1))
+                    next_page = current_page + 1
+                    # 替换页码
+                    next_url = re.sub(r'/p\d+', f'/p{next_page}', current_url)
+                    print(f"当前页码: p{current_page}, 下一页: p{next_page}")
                     print(f"下一页URL: {next_url}")
                     self.driver.get(next_url)
                     page_num += 1
                     time.sleep(5)
                     continue
-                elif '.com/' in current_url and '/p' not in current_url.split('.com/')[-1]:
+                else:
                     # URL中没有页码,添加/p2
                     next_url = current_url.rstrip('/') + '/p2'
+                    print(f"下一页URL: {next_url}")
+                    self.driver.get(next_url)
+                    page_num += 1
+                    time.sleep(5)
+                    continue
+
+            # 猎聘特殊处理: 直接修改currentPage参数
+            elif 'liepin.com' in self.driver.current_url:
+                print("检测到猎聘,尝试URL翻页...")
+                current_url = self.driver.current_url
+
+                # 提取currentPage参数并递增
+                import re
+                current_page_match = re.search(r'currentPage=(\d+)', current_url)
+
+                if current_page_match:
+                    current_page = int(current_page_match.group(1))
+                    next_page = current_page + 1
+                    next_url = re.sub(r'currentPage=\d+', f'currentPage={next_page}', current_url)
+                    print(f"当前页码: {current_page}, 下一页: {next_page}")
+                    print(f"下一页URL: {next_url}")
+                    self.driver.get(next_url)
+                    page_num += 1
+                    time.sleep(5)
+                    continue
+                else:
+                    # URL中没有currentPage,添加currentPage=1
+                    separator = '&' if '?' in current_url else '?'
+                    next_url = current_url + separator + 'currentPage=1'
                     print(f"下一页URL: {next_url}")
                     self.driver.get(next_url)
                     page_num += 1
