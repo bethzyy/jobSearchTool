@@ -9,44 +9,166 @@ import threading
 import os
 import sys
 
+try:
+    from ctypes import windll
+    # 设置窗口标题栏颜色 (Windows 11+)
+    try:
+        windll.dwmapi.DwmSetWindowAttribute = windll.dwmapi.DwmSetWindowAttribute
+    except:
+        pass
+except:
+    windll = None
+
+# 定义清爽主题配色 - 参考现代应用程序经典配色
+THEME = {
+    'bg': '#fafafa',              # 浅灰背景 (Material Design 风格)
+    'primary': '#0078d4',         # 微软蓝 - 现代清爽
+    'primary_light': '#60cdff',   # 浅蓝色
+    'primary_dark': '#005a9e',    # 深蓝色
+    'accent': '#0078d4',          # 强调蓝
+    'text': '#323130',            # 深灰文字 (更柔和)
+    'text_light': '#605e5c',      # 浅灰文字
+    'border': '#e1dfdd',          # 浅灰边框
+    'success': '#107c10',         # 成功绿 (微软风格)
+    'warning': '#d83b01',         # 警告橙
+    'error': '#a80000',           # 错误红
+    'input_bg': '#ffffff',        # 输入框白色背景
+}
+
 
 class JobFinderGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("职位查找器 v1.0")
-        self.root.geometry("650x700")
+        self.root.title("职位搜索 v1.0")
+        self.root.geometry("600x620")
         self.root.resizable(False, False)
+
+        # 设置窗口背景色
+        self.root.configure(bg=THEME['bg'])
+
+        # 设置窗口标题栏为蓝色 (Windows)
+        self.set_titlebar_color()
 
         self.finder = JobFinder()
         self.is_running = False
 
+        # 配置样式
+        self.setup_styles()
+
         self.create_widgets()
+
+    def set_titlebar_color(self):
+        """设置Windows窗口标题栏颜色为蓝色"""
+        try:
+            if windll:
+                # 更新窗口
+                self.root.update()
+
+                # DWMWA_ATTRIBUTE 枚举值
+                DWMWA_CAPTION_COLOR = 35  # Windows 11+ 标题栏颜色
+                DWMWA_COLOR_PRESCHEME = 41  # Windows 10 标题栏颜色
+
+                # 蓝色标题栏颜色 (RGB)
+                titlebar_color = 0x0078D4  # #0078d4 的整数值
+
+                # 尝试设置标题栏颜色
+                hwnd = windll.user32.GetParent(self.root.winfo_id())
+
+                # Windows 11+ 方法
+                try:
+                    windll.dwmapi.DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWA_CAPTION_COLOR,
+                        titlebar_color,
+                        4
+                    )
+                except:
+                    pass
+
+                # Windows 10 方法
+                try:
+                    windll.dwmapi.DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWA_COLOR_PRESCHEME,
+                        titlebar_color,
+                        4
+                    )
+                except:
+                    pass
+        except:
+            pass
+
+    def setup_styles(self):
+        """配置清爽主题样式"""
+        style = ttk.Style()
+
+        # 设置Frame样式
+        style.configure('TFrame', background=THEME['bg'])
+
+        # 设置Label样式
+        style.configure('TLabel',
+                       background=THEME['bg'],
+                       foreground=THEME['text'],
+                       font=('Microsoft YaHei', 9))
+
+        # 设置Entry样式
+        style.configure('TEntry',
+                       fieldbackground=THEME['input_bg'],
+                       borderwidth=1,
+                       relief='solid',
+                       bordercolor=THEME['border'])
+
+        # 设置Button样式 - 使用清爽蓝色，黑色文字
+        style.configure('TButton',
+                       background=THEME['primary'],
+                       foreground='black',
+                       font=('Microsoft YaHei', 9),
+                       borderwidth=0,
+                       focuscolor='none',
+                       relief='flat',
+                       padding=(10, 6))
+        style.map('TButton',
+                 background=[('active', THEME['primary_dark']),
+                           ('pressed', THEME['primary_dark'])],
+                 foreground=[('active', 'black'),
+                           ('pressed', 'black')])
+
+        # 设置LabelFrame样式
+        style.configure('TLabelframe',
+                       background=THEME['bg'],
+                       borderwidth=1,
+                       relief='solid',
+                       bordercolor=THEME['border'])
+        style.configure('TLabelframe.Label',
+                       background=THEME['bg'],
+                       foreground=THEME['primary'],
+                       font=('Microsoft YaHei', 9, 'bold'))
+
+        # 设置Progressbar样式
+        style.configure('TProgressbar',
+                       background=THEME['primary_light'],
+                       troughcolor='#f3f2f1',
+                       borderwidth=0,
+                       relief='flat',
+                       thickness=20)
 
     def create_widgets(self):
         """创建GUI组件"""
 
         # 主框架
-        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame = ttk.Frame(self.root, padding="15")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # 标题
-        title_label = ttk.Label(
-            main_frame,
-            text="职位查找器",
-            font=("Microsoft YaHei", 16, "bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 15))
-
         # 1. 网站URL
-        ttk.Label(main_frame, text="网站URL:").grid(row=1, column=0, sticky=tk.W, pady=8)
+        ttk.Label(main_frame, text="网站URL:").grid(row=0, column=0, sticky=tk.W, pady=6)
         self.url_entry = ttk.Entry(main_frame, width=50)
-        self.url_entry.grid(row=1, column=1, columnspan=2, pady=8, sticky=tk.EW)
+        self.url_entry.grid(row=0, column=1, columnspan=2, pady=6, sticky=tk.EW)
         self.url_entry.insert(0, "https://www.zhaopin.com/sou/jl530/kw010G0I8/p1")
 
         # 2. 关键字
-        ttk.Label(main_frame, text="关键字:").grid(row=2, column=0, sticky=tk.W, pady=8)
+        ttk.Label(main_frame, text="关键字:").grid(row=1, column=0, sticky=tk.W, pady=6)
         self.keywords_entry = ttk.Entry(main_frame, width=50)
-        self.keywords_entry.grid(row=2, column=1, columnspan=2, pady=8, sticky=tk.EW)
+        self.keywords_entry.grid(row=1, column=1, columnspan=2, pady=6, sticky=tk.EW)
         self.keywords_entry.insert(0, "AI 人工智能")
 
         # 关键字提示
@@ -54,14 +176,14 @@ class JobFinderGUI:
             main_frame,
             text="(多个关键字用空格隔开,包含任一即匹配)",
             font=("Microsoft YaHei", 8),
-            foreground="gray"
+            foreground=THEME['text_light']
         )
-        hint_label.grid(row=3, column=1, sticky=tk.W, pady=(0, 8))
+        hint_label.grid(row=2, column=1, sticky=tk.W, pady=(0, 6))
 
         # 3. 排除关键字
-        ttk.Label(main_frame, text="排除关键字:").grid(row=4, column=0, sticky=tk.W, pady=8)
+        ttk.Label(main_frame, text="排除关键字:").grid(row=3, column=0, sticky=tk.W, pady=6)
         self.exclude_entry = ttk.Entry(main_frame, width=50)
-        self.exclude_entry.grid(row=4, column=1, columnspan=2, pady=8, sticky=tk.EW)
+        self.exclude_entry.grid(row=3, column=1, columnspan=2, pady=6, sticky=tk.EW)
         self.exclude_entry.insert(0, "校招 实习生")
 
         # 排除关键字提示
@@ -69,14 +191,14 @@ class JobFinderGUI:
             main_frame,
             text="(职位包含这些关键字将跳过,留空则不过滤)",
             font=("Microsoft YaHei", 8),
-            foreground="orange"
+            foreground=THEME['warning']
         )
-        exclude_hint_label.grid(row=5, column=1, sticky=tk.W, pady=(0, 8))
+        exclude_hint_label.grid(row=4, column=1, sticky=tk.W, pady=(0, 6))
 
         # 4. 最大职位个数
-        ttk.Label(main_frame, text="最大职位数:").grid(row=6, column=0, sticky=tk.W, pady=8)
+        ttk.Label(main_frame, text="最大职位数:").grid(row=5, column=0, sticky=tk.W, pady=6)
         self.max_jobs_entry = ttk.Entry(main_frame, width=20)
-        self.max_jobs_entry.grid(row=6, column=1, sticky=tk.W, pady=8)
+        self.max_jobs_entry.grid(row=5, column=1, sticky=tk.W, pady=6)
         self.max_jobs_entry.insert(0, "30")  # 默认30个
 
         # 最大职位数提示
@@ -84,14 +206,14 @@ class JobFinderGUI:
             main_frame,
             text="(留空表示搜索所有)",
             font=("Microsoft YaHei", 8),
-            foreground="gray"
+            foreground=THEME['text_light']
         )
-        max_hint_label.grid(row=7, column=1, sticky=tk.W, pady=(0, 8))
+        max_hint_label.grid(row=6, column=1, sticky=tk.W, pady=(0, 6))
 
         # 5. 输出文件名(CSV)
-        ttk.Label(main_frame, text="输出文件(CSV):").grid(row=8, column=0, sticky=tk.W, pady=8)
+        ttk.Label(main_frame, text="输出文件(CSV):").grid(row=7, column=0, sticky=tk.W, pady=6)
         self.output_entry = ttk.Entry(main_frame, width=40)
-        self.output_entry.grid(row=8, column=1, pady=8, sticky=tk.EW)
+        self.output_entry.grid(row=7, column=1, pady=6, sticky=tk.EW)
 
         # 默认输出文件名(CSV格式)
         default_output = os.path.join(os.path.dirname(__file__), "jobs_result.csv")
@@ -104,11 +226,11 @@ class JobFinderGUI:
             command=self.browse_output_file,
             width=10
         )
-        browse_button.grid(row=8, column=2, padx=(5, 0), pady=8)
+        browse_button.grid(row=7, column=2, padx=(5, 0), pady=6)
 
         # 进度条
-        progress_frame = ttk.LabelFrame(main_frame, text="搜索进度", padding="10")
-        progress_frame.grid(row=9, column=0, columnspan=3, sticky=tk.EW, pady=(10, 10))
+        progress_frame = ttk.LabelFrame(main_frame, text="搜索进度", padding="8")
+        progress_frame.grid(row=8, column=0, columnspan=3, sticky=tk.EW, pady=(8, 8))
 
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(
@@ -120,30 +242,34 @@ class JobFinderGUI:
         )
         self.progress_bar.pack(fill=tk.X, pady=5)
 
-        self.progress_label = ttk.Label(progress_frame, text="就绪", foreground="gray")
+        self.progress_label = ttk.Label(progress_frame, text="就绪", foreground=THEME['text_light'])
         self.progress_label.pack()
 
         # 日志输出区域
-        log_frame = ttk.LabelFrame(main_frame, text="运行日志", padding="10")
-        log_frame.grid(row=10, column=0, columnspan=3, sticky=tk.EW, pady=(0, 10))
+        log_frame = ttk.LabelFrame(main_frame, text="运行日志", padding="8")
+        log_frame.grid(row=9, column=0, columnspan=3, sticky=tk.EW, pady=(0, 8))
 
         self.log_text = scrolledtext.ScrolledText(
             log_frame,
-            height=10,
+            height=8,
             font=("Consolas", 9),
-            wrap=tk.WORD
+            wrap=tk.WORD,
+            bg='white',
+            fg='black',
+            relief='solid',
+            borderwidth=1
         )
         self.log_text.pack(fill=tk.BOTH, expand=True)
 
-        # 配置日志标签颜色
-        self.log_text.tag_config("INFO", foreground="#2c3e50")
-        self.log_text.tag_config("SUCCESS", foreground="#27ae60", font=("Consolas", 9, "bold"))
-        self.log_text.tag_config("ERROR", foreground="#e74c3c", font=("Consolas", 9, "bold"))
-        self.log_text.tag_config("WARNING", foreground="#f39c12")
+        # 配置日志标签颜色 - 默认黑色
+        self.log_text.tag_config("INFO", foreground='black')
+        self.log_text.tag_config("SUCCESS", foreground=THEME['success'], font=("Consolas", 9, "bold"))
+        self.log_text.tag_config("ERROR", foreground=THEME['error'], font=("Consolas", 9, "bold"))
+        self.log_text.tag_config("WARNING", foreground=THEME['warning'])
 
         # 按钮框架
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=11, column=0, columnspan=3, pady=10)
+        button_frame.grid(row=10, column=0, columnspan=3, pady=8)
 
         # 开始按钮
         self.start_button = ttk.Button(
