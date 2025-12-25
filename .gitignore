@@ -1,0 +1,49 @@
+# Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# 环境变量和配置
+.env
+.env.local
+.env.*.local
+config.ini
+secrets.yaml
+
+# 数据文件（避免提交敏感数据）
+*.csv
+*.xlsx
+*.xls
+!example.csv
+!data/example.csv
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 日志文件
+*.log
+logs/
+
+# 浏览器驱动
+chromedriver.exe
+chromedriver
+geckodriver.exe
+geckodriver
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
